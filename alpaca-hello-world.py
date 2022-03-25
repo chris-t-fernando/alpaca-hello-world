@@ -1,4 +1,5 @@
 import alpaca_trade_api as tradeapi
+from alpaca_trade_api.rest import TimeFrame
 import numpy as np
 import time
 import boto3
@@ -10,31 +11,33 @@ SEC_KEY = (
     .get("Parameter")
     .get("Value")
 )
-PUB_KEY = (
-    ssm.get_parameter(Name="/trading_bot/pub_key", WithDecryption=True)
+API_KEY = (
+    ssm.get_parameter(Name="/trading_bot/api_key", WithDecryption=True)
     .get("Parameter")
     .get("Value")
 )
 BASE_URL = "https://paper-api.alpaca.markets"
 
-api = tradeapi.REST(key_id=PUB_KEY, secret_key=SEC_KEY, base_url=BASE_URL)
+api = tradeapi.REST(key_id=API_KEY, secret_key=SEC_KEY, base_url=BASE_URL)
 
 symb = "SPY"
 pos_held = False
 hours_to_test = 2
 
 print("Checking Price")
-market_data = api.get_barset(
-    symb, "minute", limit=(60 * hours_to_test)
-)  # Pull market data from the past 60x minutes
+market_data = api.get_bars(
+    symbol=symb, limit=(60 * hours_to_test), timeframe=TimeFrame.Hour
+)
+#    symbol=symb, "minute", limit=(60 * hours_to_test)
+# )  # Pull market data from the past 60x minutes
 
 close_list = []
-for bar in market_data[symb]:
+for bar in market_data:
     close_list.append(bar.c)
 
 
 print("Open: " + str(close_list[0]))
-print("Close: " + str(close_list[60 * hours_to_test - 1]))
+print("Close: " + str(close_list[len(close_list) - 1]))
 
 
 close_list = np.array(close_list, dtype=np.float64)
@@ -45,7 +48,7 @@ sells = 0
 
 
 for i in range(
-    4, 60 * hours_to_test
+    4, len(close_list) - 1
 ):  # Start four minutes in, so that MA can be calculated
     ma = np.mean(close_list[i - 4 : i + 1])
     last_price = close_list[i]
@@ -71,12 +74,10 @@ print("Buys: " + str(buys))
 print("Sells: " + str(sells))
 
 if buys > sells:
-    balance += close_list[
-        60 * hours_to_test - 1
-    ]  # Add back your equity to your balance
+    balance += close_list[len(close_list) - 1]  # Add back your equity to your balance
 
 
 print("Final Balance: " + str(balance))
 
-print("Profit if held: " + str(close_list[60 * hours_to_test - 1] - close_list[0]))
+print("Profit if held: " + str(close_list[len(close_list) - 1] - close_list[0]))
 print("Profit from algorithm: " + str(balance - startBal))
