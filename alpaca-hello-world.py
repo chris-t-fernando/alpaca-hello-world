@@ -20,16 +20,14 @@ BASE_URL = "https://paper-api.alpaca.markets"
 
 api = tradeapi.REST(key_id=API_KEY, secret_key=SEC_KEY, base_url=BASE_URL)
 
-symb = "SPY"
+symb = "TLRY"
 pos_held = False
-hours_to_test = 2
+hours_to_test = 12
 
 print("Checking Price")
 market_data = api.get_bars(
-    symbol=symb, limit=(60 * hours_to_test), timeframe=TimeFrame.Hour
+    symbol=symb, limit=(60 * hours_to_test), timeframe=TimeFrame.Minute
 )
-#    symbol=symb, "minute", limit=(60 * hours_to_test)
-# )  # Pull market data from the past 60x minutes
 
 close_list = []
 for bar in market_data:
@@ -38,7 +36,6 @@ for bar in market_data:
 
 print("Open: " + str(close_list[0]))
 print("Close: " + str(close_list[len(close_list) - 1]))
-
 
 close_list = np.array(close_list, dtype=np.float64)
 startBal = 2000  # Start out with 2000 dollars
